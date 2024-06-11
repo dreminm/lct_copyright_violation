@@ -16,8 +16,4 @@ class DevSettings(BaseSettings):
     model_name: str =  "antony66/whisper-large-v3-russian"
     model_sr: int = 16000
 
-    milvus_endpoint: str = "http://77.51.185.121:19530"
-    milvus_collection_name: str = "Test_Ram"
-    milvus_sim_metric: str = "IP"
-
 _settings = DevSettings()
