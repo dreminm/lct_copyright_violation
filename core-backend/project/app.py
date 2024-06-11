@@ -92,50 +92,6 @@ async def check(input: Dict) -> JSONResponse:
             "status": "ok"
         }
     )
-        
-    
-    
-# @app.post("/search")
-# async def search(query: Query) -> Dict:
-#     if query.image is None and query.id is None:
-#         return {"error": "Base64 image or id is required"}
-#     elif query.image is not None and query.id is not None:
-#         return {"error": "Only one of base64 image or id is allowed"}
-#     elif query.image is not None:
-#         logger.warning("Search by image")
-#         image = Image.open(BytesIO(base64.b64decode(query.image)))
-#         _, embedding = ram_model.process(image)
-#         result_idxs = client.search(
-#             collection_name=_settings.milvus_collection_name,
-#             data=[embedding],
-#             limit=_settings.n_results,
-#             search_params={"metric_type": _settings.milvus_sim_metric},
-#             filter=get_filter(query)
-#         )[0]
-#         results = [elem["id"] for elem in result_idxs]
-#         return {
-#             "ids": results
-#         }
-#     elif query.id is not None:
-#         logger.warning("Search by id")
-#         embedding = client.get(
-#             collection_name = _settings.milvus_collection_name,
-#             ids=query.id
-#         )[0]["embedding"]
-#         result_idxs = client.search(
-#             collection_name=_settings.milvus_collection_name,
-#             data=[embedding],
-#             limit=_settings.n_results,
-#             search_params={"metric_type": _settings.milvus_sim_metric},
-#             filter=get_filter(query)
-#         )[0]
-#         results = [elem["id"] for elem in result_idxs]
-#         if int(query.id) in results:
-#             results.remove(int(query.id))
-#         return {
-#             "ids": results
-#         }
-#     raise Exception("Something went wrong in if statements")
 
 if __name__ == "__main__":
     uvicorn.run(app, port=_settings.port, host=_settings.host)

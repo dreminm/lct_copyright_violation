@@ -1,0 +1,7 @@
+1. Запускаем milvus docker compose up
+2. Запускаем сервисы инференса и "бекэнда"
+```
+cd core-backend & python -m project.app
+cd ausil_inference & python -m project.inference
+```
+3. Открываем ноутбук `playground.ipynb` с примерами обращений
