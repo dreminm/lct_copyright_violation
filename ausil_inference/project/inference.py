@@ -13,8 +13,8 @@ from fastapi.responses import JSONResponse
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
 
 from .settings import _settings
-from.feature_extraction.extractor import featExtractor
-from.feature_extraction.network_architectures import weak_mxh64_1024
+from .feature_extraction.extractor import featExtractor
+from .feature_extraction.network_architectures import weak_mxh64_1024
 
 
 logging.basicConfig(
