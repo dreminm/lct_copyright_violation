@@ -13,6 +13,7 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor
 
 from .settings import _settings
 
+MAX_SEGMENT_DURATION = 30
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,7 +29,7 @@ processor: AutoProcessor
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global model, processor, device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cuda"
     model = AutoModelForSpeechSeq2Seq.from_pretrained(_settings.model_name).half().to(device)
     processor = AutoProcessor.from_pretrained(_settings.model_name)
     yield
@@ -43,9 +44,13 @@ async def encode(input: Dict) -> JSONResponse:
     
     with torch.no_grad():
         logits = model.model.encoder(inp.half().to(device)).last_hidden_state
+    
+    part = float(len(audio)) / (MAX_SEGMENT_DURATION * _settings.model_sr)
+    thr = int(logits.shape[1] * part)
+    logits = logits[:, :thr].mean(dim=1)
 
-    return JSONResponse(content=logits.mean(dim=-1).tolist())
+    return JSONResponse(content=logits.tolist())
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=_settings.host, port=_settings.port)

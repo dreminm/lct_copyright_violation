@@ -42,6 +42,7 @@ async def lifespan(app: FastAPI):
         FieldSchema(name="video_id", dtype=DataType.VARCHAR, max_length=200, description="Video id"),
         FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, description="Audio embedding", dim=_settings.embedding_dim),
         FieldSchema(name="segment_start", dtype=DataType.INT64, description="Start time of segment (seconds)"),
+        FieldSchema(name="segment_duration", dtype=DataType.FLOAT, description="Length of segment (seconds)"),
     ]
     index_params = {
         "field_name": "embedding",
@@ -60,30 +61,33 @@ async def lifespan(app: FastAPI):
     
 app = FastAPI(lifespan=lifespan)
 
-@app.post("/upload")
-async def upload():
-    pass
+# @app.post("/upload")
+# async def upload():
+#     pass
 
-@app.post("/check")
-async def check(input: Dict) -> JSONResponse:
+@app.post("/upload")
+async def upload(input: Dict) -> JSONResponse:
     audio, _ = librosa.load(f"../data/videos/{input['filename']}", sr=_settings.model_sr)
-    for i in tqdm(list(range(0, len(audio), _settings.model_sr * _settings.segment_duration))):
+    for i in tqdm(list(range(0, len(audio) - _settings.model_sr * (_settings.segment_duration - 1), _settings.model_sr))):
         segment = audio[i:i+_settings.model_sr * _settings.segment_duration]
-        if len(segment) < _settings.model_sr * _settings.segment_duration:
-            continue
+
         embedding = requests.post(
-            "http://localhost:8000/encode",
+            "http://localhost:8001/v1/models/encoder:predict",
             json = {
                 "audio": segment.tolist()
             }
-        ).json()
+        ).json()["embedding"]
+
+        
+        print(np.array(embedding).shape)
         milvus_client.insert_to_collection(
             collection_key=_settings.milvus_collection_name,
             insert_data=[
                 {
                     "video_id": input["filename"],
                     "embedding": embedding[0],
-                    "segment_start": i//_settings.model_sr
+                    "segment_start": i//_settings.model_sr,
+                    "segment_duration": float(segment.shape[0]) / _settings.model_sr
                 }
             ]
         )

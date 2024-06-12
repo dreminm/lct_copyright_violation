@@ -11,13 +11,11 @@ class Settings(BaseSettings):
 class DevSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="allow")
     host: str = "localhost"
-    port: str = "8000"
+    port: int = 8001
 
     model_name: str =  "antony66/whisper-large-v3-russian"
     model_sr: int = 16000
+    segment_duration: int = 10
 
-    milvus_endpoint: str = "http://77.51.185.121:19530"
-    milvus_collection_name: str = "Test_Ram"
-    milvus_sim_metric: str = "IP"
 
 _settings = DevSettings()
