@@ -82,7 +82,7 @@ def chain_search_algorithm(
             resulted_candidates = set()
             while v_end <= max_time and len(candidates) > 0:
                 v_end = v_seg_start + shift
-                expected_candidates = set([x + shift for x in seg_starts_to_candidates[v_seg_start]])
+                expected_candidates = set([x + shift for x in candidates])
                 real_candidates = set(seg_starts_to_candidates[v_end])
                 resulted_candidates = expected_candidates & real_candidates
                 to_out_candidates = expected_candidates.difference(real_candidates)
