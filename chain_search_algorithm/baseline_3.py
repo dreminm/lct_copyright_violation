@@ -5,6 +5,7 @@ import numpy as np
 from decord import VideoReader, cpu
 from pathlib import Path
 
+from tqdm.auto import tqdm
 from typing import List, Tuple
 
 
@@ -19,6 +20,8 @@ def get_matchings_count(
     keypoints_2,
     descriptions_2,
 ):
+    if len(descriptions_2) == 0 or len(descriptions_1) == 0:
+        return 0
     # BFMatcher with default params
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(descriptions_1, descriptions_2,k=2)
@@ -32,13 +35,16 @@ def get_matchings_count(
 
 
 def calculate_sift_features(frame):
-    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
     # Initiate SIFT detector
     sift = cv2.SIFT_create()
     
     # find the keypoints and descriptors with SIFT
     kp, des = sift.detectAndCompute(frame, None)
+    if des is None:
+        kp = []
+        des = []
     return kp, des
 
 
@@ -48,7 +54,7 @@ def filter_candidates(
     candidates: List[Tuple[int, int, int, int]]
 ) -> List[Tuple[int, int, int, int]]:
     result = []
-    for v_s, v_e, s_s, s_e in candidates:
+    for v_s, v_e, s_s, s_e in tqdm(candidates):
         sift_kp_des_v = []
         sift_kp_des_s = []
         secs_arrays = []
@@ -68,6 +74,8 @@ def filter_candidates(
         matrix = np.zeros((len(s_secs), len(v_secs)))
         for s_idx, s_kp_des in enumerate(sift_kp_des_s):
             for v_idx, v_kp_des in enumerate(sift_kp_des_v):
+                #print(len(s_kp_des[0]), len(s_kp_des[1]), flush=True)
+                #print(len(v_kp_des[0]), len(v_kp_des[1]), flush=True)
                 matrix[s_idx, v_idx] = get_matchings_count(*s_kp_des, *v_kp_des)
 
         best_s = None

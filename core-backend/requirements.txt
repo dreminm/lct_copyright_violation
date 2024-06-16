@@ -1,0 +1,7 @@
+Cython
+pydantic-settings
+librosa
+numpy
+fastapi
+pymilvus==2.3.7
+tqdm

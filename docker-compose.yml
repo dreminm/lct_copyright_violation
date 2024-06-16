@@ -74,6 +74,40 @@ services:
       - "minio"
       - "standalone"
 
+  milvus-backup:
+    container_name: milvus-backup
+    build:
+      context: milvus-backup
+      dockerfile: Dockerfile
+    ports:
+      - "10101:8080"
+    depends_on:
+      - "etcd"
+      - "minio"
+      - "standalone"
+
+  core-backend:
+    container_name: core-backend
+    build:
+      context: core-backend
+      dockerfile: Dockerfile
+    environment:
+      N_WORKERS: 3
+      MODEL_SR: 16000
+      MILVUS_ENDPOINT: standalone:19530
+      MILVUS_DB_NAME: "deafult"
+      MILVUS_COLLECTION_NAME: "whisper__10__0__old"
+      MILVUS_SIM_METRIC: "L2"
+      MILVUS_INDEX_TYPE: "IVF_FLAT"
+      EMBEDDING_DIM: 1280
+    ports:
+      - "8123:8080"
+    depends_on:
+      - "etcd"
+      - "minio"
+      - "standalone"
+      - "milvus-backup"
+
 networks:
   default:
     name: milvus

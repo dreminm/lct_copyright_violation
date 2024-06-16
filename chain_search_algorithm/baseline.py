@@ -6,6 +6,7 @@ import numpy as np
 from pymilvus import MilvusClient
 from torch import nn, Tensor
 from typing import List, Dict, Optional, Tuple
+from tqdm.auto import tqdm, trange
 
 from constants import MILVUS_URL, EMBEDDER_URL, MINIMAL_DURATION_VERDICT
 
@@ -18,10 +19,10 @@ def calculate_embedding(audio: np.ndarray) -> np.ndarray:
     result = requests.post(
         EMBEDDER_URL,
         json={
-            "audio": audio
+            "audio": [float(x) for x in audio.tolist()]
         }
     )
-    return np.array(result["content"])
+    return result.json()["embedding"]
 
 
 def select_consistent_chains(
@@ -54,11 +55,14 @@ def select_consistent_chains(
         for (id, video_id, seg_start) in candidates:
             cand_embedding = milvus_client.query(
                 collection_name=collection_name,
-                filter = f"video_id == '{video_id}' and segment_start == {seg_start}"
-            )[0]["emdedding"]
+                filter = f"video_id == '{video_id}' and segment_start == {seg_start + shift}"
+            )
+            if len(cand_embedding) == 0:
+                continue
+            cand_embedding = cand_embedding[0]["embedding"]
             cand_embedding = np.array(cand_embedding)
-
-            if (cand_embedding - embedding).__pow__(2).sum().__pow__(0.5) <= distance_threshold:
+            diff = np.array(cand_embedding - embedding)
+            if diff.__pow__(2).sum().__pow__(0.5) <= distance_threshold:
                 candidates_not_do_delete += [(id, video_id, seg_start)]
             elif shift - chain_shift_duration >= MINIMAL_DURATION_VERDICT:
                 episode_duration = shift - chain_shift_duration
@@ -82,25 +86,28 @@ def chain_search_algorithm(
     audio: np.array,
     sample_rate: int,
     duration: int,
-    window_duration: int = 2,
+    window_duration: int = 10,
     window_shift_duration: int = 1,
-    distance_threshold: float = 0.5,
+    distance_threshold: float = 5.0,
     collection_name: str = "audio_segments_ausil",
     chain_shift_duration: int = 1,
-    candidates_limit: int = 30
+    candidates_limit: int = 30,
 ) -> List[INTERSECTION_OUTPUT]:
     client = MilvusClient(MILVUS_URL)
 
     result: List[INTERSECTION_OUTPUT] = []
 
-    start_segment = 0
-    while start_segment < duration:
+    # start_segment = 0
+    # while start_segment < duration:
+    shift = 0
+    for start_segment in trange(0, duration, window_shift_duration):
+        #start_segment = max(start_segment, shift)
         sub_audio = audio[start_segment * sample_rate : (start_segment + window_duration) * sample_rate]
         embedding = calculate_embedding(sub_audio)
 
         milvus_output = client.search(
             collection_name=collection_name,
-            data=[embedding],
+            data=embedding,
             output_fields=["id", "video_id", "segment_start"],
             limit=candidates_limit
         )[0]
@@ -114,6 +121,15 @@ def chain_search_algorithm(
             client, collection_name
         )
         result += output
-        start_segment += window_shift_duration # max(shift, window_shift_duration)
+        #shift = start_segment + shift
+        #start_segment += window_shift_duration # max(shift, window_shift_duration)
 
+    return select_not_intersected_segments(result)
+
+
+def select_not_intersected_segments(result: List[INTERSECTION_OUTPUT]) -> List[INTERSECTION_OUTPUT]:
     return result
+    # selected = []
+    # intersected_with = [None] * len(result)
+    # for (video_id, s)
+    # return selected
