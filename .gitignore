@@ -1,5 +1,8 @@
 data
 volumes
+output*
+less_data
+*.pt
 
 venv
 flagged
