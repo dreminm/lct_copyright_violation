@@ -14,6 +14,7 @@ import json
 from pathlib import Path
 from decord import VideoReader, cpu
 
+from joblib import Parallel, delayed
 from tqdm import tqdm
 
 
@@ -27,19 +28,18 @@ if __name__ == "__main__":
     os.environ['DATABASE_VIDEOS_PATH'] = osp.abspath('../data/videos')
     files = glob(osp.join(os.environ['TEST_PATH'], '*.mp4'))
 
-    def check(fpath):
-        filter = [
-            "0v6hb6lkgyfj9i0zra8okhp2vbg6vy7y",
-            "4nwuggfnbubduoc0rgtpu0c52jqnc49a"
-        ]
-        for y in filter:
-            if y in fpath:
-                return True
-        return False
+    def weight(fpath):
+        stage_1_json = Path(
+            osp.join(
+                os.path.join(os.environ['BASE_PATH'], 'output_stage_1'),
+                Path(fpath).stem + '.json'
+            )
+        )
+        with open(stage_1_json, 'r') as fin:
+            js = json.load(fin)
+        return -len(js)
 
-    files = [
-        x for x in files if check(x)
-    ]
+    files = sorted(files, key=weight)
 
     print(files)
     print(f"Count of test videos: {len(files)}")
@@ -52,13 +52,24 @@ if __name__ == "__main__":
 
     SR = 16_000
 
-    for idx, filepath in enumerate(files):
-        basename = Path(filepath).stem
-        with open(osp.join(OUTPUT_FOLDER_1, basename + '.json'), 'r') as fin:
-            candidates = json.load(fin)
+    def process(selected_f: str):
+        basename = Path(selected_f).stem
+        stage_2_json_fpath = osp.join(OUTPUT_FOLDER_2, basename + '.json')
+        if os.path.exists(stage_2_json_fpath):
+            return
 
+        #candidates = {k: v for k, v in candidates.items() if k == "cc0904d3de995d4851de65b93860d8d5.mp4"}
         result = dict()
-        source_reader = VideoReader(filepath, ctx=cpu(0))
+        source_reader = VideoReader(selected_f, ctx=cpu(0))
+
+        stage_1_json = Path(
+            osp.join(
+                os.path.join(os.environ['BASE_PATH'], 'output_stage_1'),
+                Path(selected_f).stem + '.json'
+            )
+        )
+        with open(stage_1_json, 'r') as fin:
+            candidates = json.load(fin)
 
         for video_id, candidates_list in candidates.items():
             video_check_reader = VideoReader(
@@ -78,4 +89,4 @@ if __name__ == "__main__":
         with open(osp.join(OUTPUT_FOLDER_2, basename + '.json'), 'w') as fout:
             json.dump(result, fout, indent=4)
 
-        print(f"Count of processed test videos - {idx + 1}, total count - {len(files)} ")
+    Parallel(n_jobs=16)(delayed(process(f)) for f in files)

@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 class DevSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="allow")
     host: str = "localhost"
-    port: int = 16483
+    port: int = 8123
     n_workers: int = 1
 
     model_sr: int = 16000

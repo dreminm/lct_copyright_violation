@@ -35,8 +35,12 @@ if __name__ == "__main__":
 
     for idx, filepath in enumerate(files):
         basename = Path(filepath).stem
+        with open(osp.join(OUTPUT_FOLDER, basename + '.json'), 'r') as fin:
+            data = json.load(fin)
+            if len(data) > 0:
+                continue
         audio, _ = librosa.load(filepath, sr=SR)
-        duration = len(audio) // SR 
+        duration = len(audio) // SR
         result = chain_search_algorithm(
             audio,
             16_000,

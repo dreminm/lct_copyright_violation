@@ -7,13 +7,18 @@ import os
 
 from contextlib import asynccontextmanager
 from typing import Dict
-from fastapi import FastAPI, UploadFile, File, FileResponse
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import JSONResponse, FileResponse
 from pymilvus import (
     FieldSchema,
     DataType
 )
+import os
+import json
+import os.path as osp
+from pathlib import Path
 from tqdm import tqdm
+from .utils import chain_search_algorithm, filter_candidates, VideoReader, cpu
 from .settings import _settings
 from project.storage.milvus import CustomMilvusClient
 
@@ -71,9 +76,44 @@ async def upload_video(video: UploadFile = File(...)):
         file_path = os.path.join(UPLOAD_FOLDER, video.filename)
 
         # Сохраняем файл
-        with open(file_path, "wb") as buffer:
-            contents = await video.read()
-            buffer.write(contents)
+        # with open(file_path, "wb") as buffer:
+        #     contents = await video.read()
+        #     buffer.write(contents)
+
+        #video = await video.read()#["video"]
+        SR = 16_000
+        audio, _ = librosa.load(file_path, sr=SR)
+        duration = len(audio) // SR
+        audio_candidates = chain_search_algorithm(
+            audio,
+            16_000,
+            duration,
+            10,
+            1,
+            2,
+            "whisper__10__0",
+            None,
+            100
+        )
+        result = dict()
+        source_reader = VideoReader(file_path, ctx=cpu(0))
+
+        candidates = audio_candidates
+
+        for video_id, candidates_list in candidates.items():
+            video_check_reader = VideoReader(
+                osp.join(
+                    os.environ['DATABASE_VIDEOS_PATH'],
+                    video_id
+                ),
+                ctx=cpu(0)
+            )
+            selected_cand = filter_candidates(
+                source_reader, video_check_reader,
+                candidates_list
+            )
+            if len(selected_cand) > 0:
+                result[video_id] = selected_cand
 
         analog_info = [
             {"filename": "http://127.0.0.1:8000/video/video2.mp4", "time_intervals": [
@@ -89,6 +129,7 @@ async def upload_video(video: UploadFile = File(...)):
         ]
 
         return JSONResponse(content={"message": "Видео успешно загружено!",
+                                     "algorithm_result": result,
                                      "analog_info": analog_info,
                                      "upload_info": upload_info
                                      }, status_code=200)
@@ -140,5 +181,6 @@ async def get_video(video_file: str):
     video_path = f"./files/{video_file}"
     return FileResponse(video_path)
 
+
 if __name__ == "__main__":
-    uvicorn.run(app, port=_settings.port, host=_settings.host, workers=_settings.n_workers)
+    uvicorn.run("project.app:app", port=_settings.port, host=_settings.host, workers=_settings.n_workers)

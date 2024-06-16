@@ -28,14 +28,18 @@ def get_matchings_count(
     
     # Apply ratio test
     answer = 0
-    for m,n in matches:
-        if m.distance < 0.5*n.distance:
-            answer += 1
+    try:
+        for m,n in matches:
+            if m.distance < 0.5*n.distance:
+                answer += 1
+    except:
+        pass
     return answer
 
 
 def calculate_sift_features(frame):
     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+    h, w = frame.shape[:2]
 
     # Initiate SIFT detector
     sift = cv2.SIFT_create()
@@ -45,7 +49,19 @@ def calculate_sift_features(frame):
     if des is None:
         kp = []
         des = []
-    return kp, des
+    kp_res = []
+    des_res = []
+    for k, d in zip(kp, des):
+        x, y = k.pt
+        x /= w
+        y /= h
+        if (35 / 360. <= y <= 50 / 360.) and (550 / 640. <= x <= 620 / 640):
+
+            continue
+        else:
+            kp_res += [k]
+            des_res += [d]
+    return kp_res, np.array(des_res)
 
 
 def filter_candidates(
@@ -81,16 +97,23 @@ def filter_candidates(
         best_s = None
         best_v = None
         best_len = 0
-        for s_idx in range(len(sift_kp_des_s)):
-            for v_idx in range(len(sift_kp_des_v)):
-                cur_len = 0
-                while s_idx + cur_len < len(sift_kp_des_s) and v_idx + cur_len < len(sift_kp_des_v) \
-                    and matrix[s_idx + cur_len, v_idx + cur_len] >= MIN_COUNT:
-                    cur_len += 1
+        dp = np.zeros_like(matrix).astype(int)
+        for s_idx in range(0, len(sift_kp_des_s)):
+            dp[s_idx][0] = int(matrix[s_idx][0] >= MIN_COUNT)
+        for v_idx in range(0, len(sift_kp_des_v)):
+            dp[0][v_idx] = int(matrix[0][v_idx] >= MIN_COUNT)
+        for s_idx in range(1, len(sift_kp_des_s)):
+            for v_idx in range(1, len(sift_kp_des_v)):
+                if matrix[s_idx, v_idx] >= MIN_COUNT:
+                    dp[s_idx][v_idx] = dp[s_idx - 1][v_idx - 1] + 1
+
+        for s_idx in range(0, len(sift_kp_des_s)):
+            for v_idx in range(0, len(sift_kp_des_v)):
+                cur_len = dp[s_idx][v_idx]
                 if best_len < cur_len:
-                    best_len = cur_len
-                    best_s = s_idx
-                    best_v = v_idx
+                    best_len = int(cur_len)
+                    best_s = int(s_secs[s_idx - cur_len + 1] // FPS)
+                    best_v = int(v_secs[v_idx - cur_len + 1] // FPS)
         if best_len >= 10:
             result += [(best_v, best_v + best_len, best_s, best_s + best_len)]
 
