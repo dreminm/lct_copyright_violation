@@ -60,12 +60,15 @@ async def lifespan(app: FastAPI):
     yield
     
 app = FastAPI(lifespan=lifespan)
+UPLOAD_FOLDER = "upload_files"
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
 
 # @app.post("/upload")
 # async def upload():
 #     pass
 
-@app.post("/upload")
+@app.post("/upload/milvus")
 async def upload(input: Dict) -> JSONResponse:
     audio, _ = librosa.load(f"../data/videos/{input['filename']}", sr=_settings.model_sr)
     for i in tqdm(list(range(0, len(audio) - _settings.model_sr * (_settings.segment_duration - 1), _settings.model_sr))):
@@ -96,6 +99,46 @@ async def upload(input: Dict) -> JSONResponse:
             "status": "ok"
         }
     )
+
+@app.post("/upload")
+async def upload_video(video: UploadFile = File(...)):
+    """
+    Принимает видео файл и сохраняет его в файловой системе.
+    """
+    try:
+        file_path = os.path.join(UPLOAD_FOLDER, video.filename)
+
+        # Сохраняем файл
+        with open(file_path, "wb") as buffer:
+            contents = await video.read()
+            buffer.write(contents)
+
+        analog_info = [
+            {"filename": "http://127.0.0.1:8000/video/video2.mp4", "time_intervals": [
+                {"start_sec": 27, "t_start": "0:0:27 - 0:0:50"},
+                {"start_sec": 30, "t_start": "0:0:30 - 0:0:53"}]},
+            {"filename": "http://127.0.0.1:8000/video/video3.mp4", "time_intervals": [
+                {"start_sec": 125, "t_start": "0:2:5 - 0:2:20"}]}
+        ]
+        upload_info = [
+            [{"start_sec": 40, "t_start": "0:0:40 - 0:1:3"},
+             {"start_sec": 45, "t_start": "0:0:45 - 0:1:8"}],
+            [{"start_sec": 140, "t_start": "0:2:20 - 0:2:35"}]
+        ]
+
+        return JSONResponse(content={"message": "Видео успешно загружено!",
+                                     "analog_info": analog_info,
+                                     "upload_info": upload_info
+                                     }, status_code=200)
+    except Exception as e:
+        return JSONResponse(content={"message": f"Ошибка загрузки видео: {str(e)}"}, status_code=500)
+
+
+@app.get("/video/{video_file}")
+async def get_video(video_file: str):
+    # Путь к файлу видео
+    video_path = f"./files/{video_file}"
+    return FileResponse(video_path)
 
 if __name__ == "__main__":
     uvicorn.run(app, port=_settings.port, host=_settings.host)
