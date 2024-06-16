@@ -73,12 +73,13 @@ async def upload_video(video: UploadFile = File(...)):
     Принимает видео файл и сохраняет его в файловой системе.
     """
     try:
+        UPLOAD_FOLDER = "data"
         file_path = os.path.join(UPLOAD_FOLDER, video.filename)
 
         # Сохраняем файл
-        # with open(file_path, "wb") as buffer:
-        #     contents = await video.read()
-        #     buffer.write(contents)
+        with open(file_path, "wb") as buffer:
+            contents = await video.read()
+            buffer.write(contents)
 
         #video = await video.read()#["video"]
         SR = 16_000
