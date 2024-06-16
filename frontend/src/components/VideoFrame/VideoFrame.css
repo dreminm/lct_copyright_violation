@@ -1,0 +1,32 @@
+.footer-style {
+    /* text-align: left;
+    margin-top: 10px; */
+    width: 15em;
+    border: 1px solid #333;
+    box-shadow: 8px 8px 5px #444;
+    padding: 8px 12px;
+    background-color: rgb(93, 50, 238);
+    color: white;
+    position: absolute;
+    bottom: 0;
+    margin: 10px;
+  }
+
+  .title-style {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 30px;
+    background-color: rgb(93, 50, 238);
+    color: white;
+  }
+
+  .frame-style {
+    position: relative;
+    border: 20px solid rgb(16, 9, 67);
+    min-height: 400px;
+    min-width: 680px;
+    height: 400px;
+    width: 680px;
+    margin: 100px;
+    margin-top: 50px;
+  }

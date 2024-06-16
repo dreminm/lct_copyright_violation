@@ -1,5 +1,8 @@
 version: '3.5'
 
+environment:
+  - GLOBAL_FILES_PATH=global_value
+
 services:
   etcd:
     container_name: milvus-etcd
@@ -73,6 +76,21 @@ services:
       - "etcd"
       - "minio"
       - "standalone"
+  
+  frontend:
+    build: ./frontend
+    ports:
+      - "8001:80"
+    container_name: frontend
+
+  version: "3.9"
+
+  core-backend:
+    build: ./core-backend
+    ports:
+      - "8002:8000"
+    volumes:
+      - GLOBAL_FILES_PATH:/files  # Монтирование директории с кодом приложения (опционально)
 
 networks:
   default:
