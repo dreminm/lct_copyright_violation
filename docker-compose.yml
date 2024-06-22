@@ -94,20 +94,34 @@ services:
     environment:
       N_WORKERS: 3
       MODEL_SR: 16000
-      MILVUS_ENDPOINT: standalone:19530
+      MILVUS_ENDPOINT: "http://standalone:19530"
       MILVUS_DB_NAME: "deafult"
       MILVUS_COLLECTION_NAME: "whisper__10__0__old"
       MILVUS_SIM_METRIC: "L2"
       MILVUS_INDEX_TYPE: "IVF_FLAT"
       EMBEDDING_DIM: 1280
     ports:
-      - "8123:8080"
+      - "8080:8080"
+    volumes:
+      - /home/konstantin/Desktop/Hackathon/files:/files
     depends_on:
       - "etcd"
       - "minio"
       - "standalone"
       - "milvus-backup"
 
+  frontend:
+    container_name: frontend
+    build: ./frontend
+    ports:
+      - "2001:2001"
+    depends_on:
+      - "etcd"
+      - "minio"
+      - "standalone"
+      - "milvus-backup"
+      - "core-backend"
+    
 networks:
   default:
-    name: milvus
+    name: milvus1

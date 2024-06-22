@@ -7,8 +7,8 @@ import os
 
 from contextlib import asynccontextmanager
 from typing import Dict
-from fastapi import FastAPI, UploadFile, File, FileResponse
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import JSONResponse, FileResponse
 from pymilvus import (
     FieldSchema,
     DataType
@@ -68,18 +68,17 @@ async def upload_video(video: UploadFile = File(...)):
     Принимает видео файл и сохраняет его в файловой системе.
     """
     try:
-        file_path = os.path.join(UPLOAD_FOLDER, video.filename)
 
         # Сохраняем файл
-        with open(file_path, "wb") as buffer:
-            contents = await video.read()
-            buffer.write(contents)
+        contents = await video.read()
+
+
 
         analog_info = [
-            {"filename": "http://127.0.0.1:8000/video/video2.mp4", "time_intervals": [
+            {"filename": "http://localhost:2001/api/video/video2.mp4", "time_intervals": [
                 {"start_sec": 27, "t_start": "0:0:27 - 0:0:50"},
                 {"start_sec": 30, "t_start": "0:0:30 - 0:0:53"}]},
-            {"filename": "http://127.0.0.1:8000/video/video3.mp4", "time_intervals": [
+            {"filename": "http://localhost:2001/api/video/video3.mp4", "time_intervals": [
                 {"start_sec": 125, "t_start": "0:2:5 - 0:2:20"}]}
         ]
         upload_info = [
@@ -111,7 +110,7 @@ async def upload(input: Dict) -> JSONResponse:
         segment = audio[max(0, int(i-segment_shift*_settings.model_sr)):int(i+_settings.model_sr * (segment_duration - segment_shift))]
 
         embedding = requests.post(
-            "http://localhost:8001/v1/models/encoder:predict",
+            "http://whisper-inference:12346/v1/models/encoder:predict",
             json = {
                 "audio": segment.tolist()
             }
@@ -137,8 +136,8 @@ async def upload(input: Dict) -> JSONResponse:
 @app.get("/video/{video_file}")
 async def get_video(video_file: str):
     # Путь к файлу видео
-    video_path = f"./files/{video_file}"
+    video_path = f"/files/{video_file}"
     return FileResponse(video_path)
 
 if __name__ == "__main__":
-    uvicorn.run(app, port=_settings.port, host=_settings.host, workers=_settings.n_workers)
+    uvicorn.run("project.app:app", port=_settings.port, host=_settings.host, workers=_settings.n_workers)

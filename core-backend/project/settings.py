@@ -26,7 +26,7 @@ class DevSettings(BaseSettings):
 
     model_sr: int = 16000
 
-    milvus_endpoint: str = "http://0.0.0.0:19530"
+    milvus_endpoint: str = "http://standalone:19530"
     milvus_db_name: str = "default"
     milvus_collection_name: str = "audio_segments_whisper"
     milvus_sim_metric: str = "L2"
