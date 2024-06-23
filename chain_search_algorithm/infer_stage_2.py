@@ -89,4 +89,5 @@ if __name__ == "__main__":
         with open(osp.join(OUTPUT_FOLDER_2, basename + '.json'), 'w') as fout:
             json.dump(result, fout, indent=4)
 
-    Parallel(n_jobs=16)(delayed(process(f)) for f in files)
+    for f in files:
+        process(f)

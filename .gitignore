@@ -3,6 +3,8 @@ volumes
 output*
 less_data
 *.pt
+*.csv
+*.zip
 
 venv
 flagged
