@@ -1,4 +1,3 @@
-import torch
 import requests
 
 import numpy as np
@@ -8,17 +7,31 @@ from torch import nn, Tensor
 from typing import List, Dict, Optional, Tuple, Iterable, Sequence
 from tqdm.auto import tqdm, trange
 
+
+import cv2
+import os.path as osp
+
+import numpy as np
+import librosa
+
+from decord import VideoReader, cpu
+from pathlib import Path
+
+from tqdm.auto import tqdm
+from typing import List, Tuple
+
 from collections import defaultdict
-from constants import MILVUS_URL, EMBEDDER_URL, MINIMAL_DURATION_VERDICT
+from project.settings import _settings
 
 
 CANDIDATE_TYPE = Tuple[str, int]
-INTERSECTION_OUTPUT = Tuple[str, int, int, int, int]
+INTERSECTION_OUTPUT = Tuple[int, int, int, int]
+MINIMAL_DURATION_VERDICT = 10
 
 
 def calculate_embedding(audio: np.ndarray) -> np.ndarray:
     result = requests.post(
-        EMBEDDER_URL,
+        _settings.embedder_endpoint,
         json={
             "audio": [float(x) for x in audio.tolist()]
         }
@@ -63,7 +76,7 @@ def chain_search_algorithm(
     chain_shift_duration: int = 1,
     candidates_limit: int = 30,
 ) -> Dict[str, List[int]]:
-    client = MilvusClient(MILVUS_URL)
+    client = MilvusClient(_settings.milvus_endpoint)
 
     result: List[INTERSECTION_OUTPUT] = []
 
@@ -220,19 +233,6 @@ def merge_pieces(segments: Dict[str, List[Tuple[int, int, int, int]]]):
     return result
 
 
-
-
-import cv2
-
-import numpy as np
-
-from decord import VideoReader, cpu
-from pathlib import Path
-
-from tqdm.auto import tqdm
-from typing import List, Tuple
-
-
 FPS = 10
 FRAMES_SHIFT = 5
 MIN_COUNT = 3
@@ -342,3 +342,86 @@ def filter_candidates(
             result += [(best_v, best_v + best_len, best_s, best_s + best_len)]
 
     return result
+
+
+def inference_algorithm(file_path: str, database_videos: str, SR: int = 16_000, collection_name: str = "whisper_segments"):
+    audio, _ = librosa.load(file_path, sr=SR)
+    duration = len(audio) // SR
+    audio_candidates = chain_search_algorithm(
+        audio,
+        SR,
+        duration,
+        10,
+        1,
+        2,
+        collection_name,
+        None,
+        100
+    )
+    result = dict()
+    source_reader = VideoReader(file_path, ctx=cpu(0))
+
+    candidates = audio_candidates
+
+    for video_id, candidates_list in candidates.items():
+        video_check_reader = VideoReader(
+            osp.join(
+                database_videos, #os.environ['DATABASE_VIDEOS_PATH'],
+                video_id
+            ),
+            ctx=cpu(0)
+        )
+        selected_cand = filter_candidates(
+            source_reader, video_check_reader,
+            candidates_list
+        )
+        if len(selected_cand) > 0:
+            result[video_id] = selected_cand
+    return format_result(result)
+
+
+def second_to_string(second: int):
+    sec = second % 60
+    minutes = second // 60
+    mins = minutes % 60
+    hours = minutes // 60
+    assert hours < 24
+    return "{:02d}:{:02d}:{:02d}".format(hours, mins, sec)
+
+
+def format_result(result: Dict[str, List[Tuple[int, int, int, int]]]):
+    #     analog_info = [
+    #             {"filename": "http://localhost:2001/api/video/video2.mp4", "time_intervals": [
+    #                 {"start_sec": 27, "t_start": "0:0:27 - 0:0:50"},
+    #                 {"start_sec": 30, "t_start": "0:0:30 - 0:0:53"}]},
+    #             {"filename": "http://localhost:2001/api/video/video3.mp4", "time_intervals": [
+    #                 {"start_sec": 125, "t_start": "0:2:5 - 0:2:20"}]}
+    #         ]
+    #         upload_info = [
+    #             [{"start_sec": 40, "t_start": "0:0:40 - 0:1:3"},
+    #              {"start_sec": 45, "t_start": "0:0:45 - 0:1:8"}],
+    #             [{"start_sec": 140, "t_start": "0:2:20 - 0:2:35"}]
+    #         ]
+    analog_info = []
+    upload_info = []
+    for video_id, candidates_list in result.items():
+        time_intervals_analog = []
+        time_intervals_upload = []
+        for v_s, v_e, s_s, s_e in candidates_list:
+            time_intervals_analog += [
+                {
+                    "start_sec": v_s,
+                    "t_start": second_to_string(v_s) + " - " + second_to_string(v_e)
+                }
+            ]
+            time_intervals_upload += [
+                {
+                    "start_sec": s_s,
+                    "t_start": second_to_string(s_s) + " - " + second_to_string(s_e)
+                }
+            ]
+        analog_info += [
+            {"filename": f"http://localhost:12345/api/video/{video_id}", "time_intervals": time_intervals_analog}
+        ]
+        upload_info.append(time_intervals_upload)
+    return analog_info, upload_info

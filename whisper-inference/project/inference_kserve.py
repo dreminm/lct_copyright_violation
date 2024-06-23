@@ -26,14 +26,18 @@ class WhisperModel(kserve.Model):
         
     def load(self) -> None:
         self.model = AutoModelForSpeechSeq2Seq.from_pretrained(self.model_name)
-        self.model = self.model.model.encoder.half().to(self.device)
+        self.model = self.model.model.encoder
+        if "cuda" in self.device:
+            self.model = self.model.half().to(self.device)
         self.processor = AutoProcessor.from_pretrained(self.model_name, device_map=self.device)
         self.ready = True
 
     def predict(self, request_data: Dict, request_headers: Dict) -> Dict:
         audio = request_data["audio"]
 
-        inp = torch.tensor(self.processor(audio, sampling_rate=self.model_sr)['input_features']).half().to(self.device)
+        inp = torch.tensor(self.processor(audio, sampling_rate=self.model_sr)['input_features'])
+        if "cuda" in self.device:
+            inp = inp.half().to(self.device)
         
         with torch.no_grad():
             logits = self.model(inp).last_hidden_state

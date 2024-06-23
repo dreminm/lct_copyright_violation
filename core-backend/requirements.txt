@@ -1,8 +1,10 @@
 Cython
 pydantic-settings
 librosa
-numpy
+numpy<2.0.0
 torch
 fastapi
 pymilvus==2.3.7
 tqdm
+opencv-python
+decord

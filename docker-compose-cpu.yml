@@ -79,14 +79,9 @@ services:
     build:
       context: whisper-inference
       dockerfile: Dockerfile
-    # shm_size: 2gb
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+    ports:
+      - "8001:8001"
+    shm_size: 2gb
 
   milvus-init:
     container_name: milvus-init
@@ -122,18 +117,18 @@ services:
       MILVUS_SIM_METRIC: "L2"
       MILVUS_INDEX_TYPE: "IVF_FLAT"
       EMBEDDING_DIM: 1280
+      UPLOAD_FOLDER: "data"
+      EMBEDDER_ENDPOINT: "http://whisper-inference:8001/v1/models/encoder:predict"
     ports:
       - "8080:8080"
-    # volumes:
-    #   - /home/konstantin/Desktop/Hackathon/files:/files
+    volumes:
+      - ./data/videos:/files
     depends_on:
       - "etcd"
       - "minio"
       - "standalone"
       - "whisper-inference"
       - "milvus-init"
-
-
 
   frontend:
     container_name: frontend

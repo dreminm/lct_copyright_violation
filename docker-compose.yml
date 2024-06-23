@@ -79,9 +79,9 @@ services:
     build:
       context: whisper-inference
       dockerfile: Dockerfile
-    shm_size: 2gb
     ports:
       - "8001:8001"
+    shm_size: 2gb
     deploy:
       resources:
         reservations:
@@ -90,17 +90,25 @@ services:
               count: 1
               capabilities: [gpu]
 
-  # milvus-backup:
-  #   container_name: milvus-backup
-  #   build:
-  #     context: milvus-backup
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "10101:8080"
-  #   depends_on:
-  #     - "etcd"
-  #     - "minio"
-  #     - "standalone"
+  milvus-init:
+    container_name: milvus-init
+    build:
+      context: milvus-init
+      dockerfile: Dockerfile
+    volumes:
+      - ./jsons:/app/backup-data
+    environment:
+      MILVUS_ENDPOINT: "http://standalone:19530"
+      MILVUS_DB_NAME: "deafult"
+      MILVUS_COLLECTION_NAME: "whisper_segments"
+      MILVUS_SIM_METRIC: "L2"
+      MILVUS_INDEX_TYPE: "IVF_FLAT"
+      EMBEDDING_DIM: 1280
+    depends_on:
+      - "etcd"
+      - "minio"
+      - "standalone"
+      - "whisper-inference"
 
   core-backend:
     container_name: core-backend
@@ -116,42 +124,29 @@ services:
       MILVUS_SIM_METRIC: "L2"
       MILVUS_INDEX_TYPE: "IVF_FLAT"
       EMBEDDING_DIM: 1280
+      UPLOAD_FOLDER: "data"
+      EMBEDDER_ENDPOINT: "http://whisper-inference:8001/v1/models/encoder:predict"
     ports:
       - "8080:8080"
     volumes:
-      - /home/konstantin/Desktop/Hackathon/files:/files
+      - ./data/videos:/files
     depends_on:
       - "etcd"
       - "minio"
       - "standalone"
       - "whisper-inference"
-      # - "milvus-init"
-
-  milvus-init:
-    container_name: milvus-init
-    build:
-      context: milvus-init
-      dockerfile: Dockerfile
-    volumes:
-      - ./jsons:/app/backup-data
-    depends_on:
-      - "etcd"
-      - "minio"
-      - "standalone"
-      - "whisper-inference"
-      - "core-backend"
-      # - "milvus-backup"
+      - "milvus-init"
 
   frontend:
     container_name: frontend
     build: ./frontend
     ports:
-      - "2001:2001"
+      - "12345:12345"
     depends_on:
       - "etcd"
       - "minio"
       - "standalone"
-      # - "milvus-backup"
+      - "milvus-init"
       - "core-backend"
     
 networks:

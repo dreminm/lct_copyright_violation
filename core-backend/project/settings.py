@@ -18,20 +18,30 @@ class Settings(BaseSettings):
     milvus_index_nlist: int = 1024
     embedding_dim: int =  Field(..., env="EMBEDDING_DIM")
 
+    upload_folder: str = Field(..., env="UPLOAD_FOLDER")
+
+    embedder_endpoint: str = Field(..., env="EMBEDDER_ENDPOINT")
+    database_videos_path: str = "/files"
+
 class DevSettings(BaseSettings):
     model_config = SettingsConfigDict(extra="allow")
     host: str = "localhost"
-    port: int = 8123
+    port: int = 8080
     n_workers: int = 1
 
     model_sr: int = 16000
 
-    milvus_endpoint: str = "http://standalone:19530"
+    milvus_endpoint: str = "http://localhost:19530"
     milvus_db_name: str = "default"
-    milvus_collection_name: str = "audio_segments_whisper"
+    milvus_collection_name: str = "whisper_segments"
     milvus_sim_metric: str = "L2"
     milvus_index_type: str = "IVF_FLAT"
     milvus_index_nlist: int = 1024
     embedding_dim: int = 1280
+
+    upload_folder: str = "data"
+
+    embedder_endpoint: str = "http://localhost:8001/v1/models/encoder:predict"
+    database_videos_path: str = "../data/videos"
 
 _settings = Settings()
