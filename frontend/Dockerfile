@@ -6,5 +6,6 @@ RUN npm i vite
 RUN npm run build
 FROM nginx:1.16.0-alpine
 COPY --from=build /front_app/dist /usr/share/nginx/html
-EXPOSE 8001
+COPY nginx.conf /etc/nginx/nginx.conf
+EXPOSE 12345
 CMD ["nginx", "-g", "daemon off;"]

@@ -139,7 +139,7 @@ services:
     container_name: frontend
     build: ./frontend
     ports:
-      - "2001:2001"
+      - "12345:12345"
     depends_on:
       - "etcd"
       - "minio"
