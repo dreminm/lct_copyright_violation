@@ -14,7 +14,7 @@ export const useUploadVideo = ({setVideoUploadSrc, setVideoAnalogSrc, setinterva
             const formData = new FormData();
             formData.append('video', file); // 'video' - имя поля на сервере 
       
-            fetch('http://127.0.0.1:8000/upload', { // Замените '/upload' на ваш URL 
+            fetch('http://127.0.0.1:8080/upload', { // Замените '/upload' на ваш URL 
               method: 'POST',
               body: formData 
             })
