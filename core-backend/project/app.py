@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
         "metric_type": _settings.milvus_sim_metric,
         "index_type": _settings.milvus_index_type,
         "params":{
-            "nlist":_settings.milvus_index_nlist
+            "nlist": _settings.milvus_index_nlist
         }
     }
     milvus_client.get_or_create_collection(

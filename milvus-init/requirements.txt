@@ -1,2 +1,4 @@
 pymilvus==2.3.7
 tqdm
+pydantic
+pydantic_settings

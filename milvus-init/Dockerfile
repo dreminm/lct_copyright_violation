@@ -5,6 +5,6 @@ COPY requirements.txt .
 
 RUN pip install -r requirements.txt
 
-COPY backup-milvus.py .
+COPY project ./project/
 
-CMD python backup-milvus.py
+CMD python -m project.backup-milvus

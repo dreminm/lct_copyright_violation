@@ -21,7 +21,8 @@ class WhisperModel(kserve.Model):
         self.model = None
         self.model_name = model_name
         self.model_sr = 16000
-        self.device = "cuda"
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        logging.warning(f"Running on device: {self.device}")
         
     def load(self) -> None:
         self.model = AutoModelForSpeechSeq2Seq.from_pretrained(self.model_name)

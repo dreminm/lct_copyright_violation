@@ -2,6 +2,7 @@ Cython
 pydantic-settings
 librosa
 numpy
+torch
 fastapi
 pymilvus==2.3.7
 tqdm
