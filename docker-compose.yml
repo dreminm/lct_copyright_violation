@@ -80,6 +80,8 @@ services:
       context: whisper-inference
       dockerfile: Dockerfile
     shm_size: 2gb
+    ports:
+      - "8001:8001"
     deploy:
       resources:
         reservations:
@@ -149,7 +151,7 @@ services:
       - "etcd"
       - "minio"
       - "standalone"
-      - "milvus-backup"
+      # - "milvus-backup"
       - "core-backend"
     
 networks:
