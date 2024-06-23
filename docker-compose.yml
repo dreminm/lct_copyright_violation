@@ -66,7 +66,7 @@ services:
     security_opt:
     - seccomp:unconfined
     environment:
-      MILVUS_URL: standalone:19530 
+      MILVUS_URL: "standalone:19530"
     ports:
       - "3000:3000"
     depends_on:
@@ -74,17 +74,31 @@ services:
       - "minio"
       - "standalone"
 
-  milvus-backup:
-    container_name: milvus-backup
+  whisper-inference:
+    container_name: whisper-inference
     build:
-      context: milvus-backup
+      context: whisper-inference
       dockerfile: Dockerfile
-    ports:
-      - "10101:8080"
-    depends_on:
-      - "etcd"
-      - "minio"
-      - "standalone"
+    shm_size: 2gb
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # milvus-backup:
+  #   container_name: milvus-backup
+  #   build:
+  #     context: milvus-backup
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "10101:8080"
+  #   depends_on:
+  #     - "etcd"
+  #     - "minio"
+  #     - "standalone"
 
   core-backend:
     container_name: core-backend
@@ -96,7 +110,7 @@ services:
       MODEL_SR: 16000
       MILVUS_ENDPOINT: "http://standalone:19530"
       MILVUS_DB_NAME: "deafult"
-      MILVUS_COLLECTION_NAME: "whisper__10__0__old"
+      MILVUS_COLLECTION_NAME: "whisper_segments"
       MILVUS_SIM_METRIC: "L2"
       MILVUS_INDEX_TYPE: "IVF_FLAT"
       EMBEDDING_DIM: 1280
@@ -108,7 +122,23 @@ services:
       - "etcd"
       - "minio"
       - "standalone"
-      - "milvus-backup"
+      - "whisper-inference"
+      # - "milvus-init"
+
+  milvus-init:
+    container_name: milvus-init
+    build:
+      context: milvus-init
+      dockerfile: Dockerfile
+    volumes:
+      - ./jsons:/app/backup-data
+    depends_on:
+      - "etcd"
+      - "minio"
+      - "standalone"
+      - "whisper-inference"
+      - "core-backend"
+      # - "milvus-backup"
 
   frontend:
     container_name: frontend
