@@ -421,7 +421,7 @@ def format_result(result: Dict[str, List[Tuple[int, int, int, int]]]):
                 }
             ]
         analog_info += [
-            {"filename": f"http://localhost:12345/api/video/{video_id}", "time_intervals": time_intervals_analog}
+            {"filename": f"http://localhost:12345/files/{video_id}", "time_intervals": time_intervals_analog}
         ]
         upload_info.append(time_intervals_upload)
     return analog_info, upload_info

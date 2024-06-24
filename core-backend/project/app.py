@@ -136,11 +136,11 @@ async def upload_milvus(video: UploadFile = File(...)) -> JSONResponse:
             }
         )
     
-@app.get("/video/{video_file}")
-async def get_video(video_file: str):
-    logger.warning(f"Возвращаем: {video_file}")
-    video_path = f"/files/{video_file}"
-    return FileResponse(video_path)
+# @app.get("/video/{video_file}")
+# async def get_video(video_file: str):
+#     logger.warning(f"Возвращаем: {video_file}")
+#     video_path = f"/files/{video_file}"
+#     return FileResponse(video_path)
 
 if __name__ == "__main__":
     uvicorn.run("project.app:app", port=_settings.port, host=_settings.host, workers=_settings.n_workers)

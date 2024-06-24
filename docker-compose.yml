@@ -128,8 +128,6 @@ services:
       EMBEDDER_ENDPOINT: "http://whisper-inference:8001/v1/models/encoder:predict"
     ports:
       - "8080:8080"
-    volumes:
-      - ./videos:/files
     depends_on:
       - "etcd"
       - "minio"
@@ -142,6 +140,8 @@ services:
     build: ./frontend
     ports:
       - "12345:12345"
+        volumes:
+      - ./videos:/files
     depends_on:
       - "etcd"
       - "minio"
