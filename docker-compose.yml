@@ -140,7 +140,7 @@ services:
     build: ./frontend
     ports:
       - "12345:12345"
-        volumes:
+    volumes:
       - ./videos:/files
     depends_on:
       - "etcd"
